@@ -48,146 +48,106 @@ long long SolvePart1(vector<pair<int, int>> RedTiles)
     return MaxArea;
 }
 
-long long SolvePart2(vector<pair<int, int>> RedTiles)
+bool InsidePolygon(int PointLine, int PointCol, vector<pair<int, int>> PointsPolygon)
 {
-    // Initialize the floor matrix with 1s
-    int MaxLine = 0, MaxCol = 0;
-    for (int IdxRedTile = 0; IdxRedTile < RedTiles.size(); IdxRedTile++)
-    {
-        MaxLine = (RedTiles[IdxRedTile].first > MaxLine) ? RedTiles[IdxRedTile].first : MaxLine;
-        MaxCol = (RedTiles[IdxRedTile].second > MaxCol) ? RedTiles[IdxRedTile].second : MaxCol;
-    }
-    /** 
-     * +2 because this will be used as the size of the floor matrix and 
-     * +1 is in order to capture the maximum value and 
-     * +1 is for having a border where for sure there are no red tiles in order to be able to start the fill algorithm later
-    */
-    MaxLine += 2; 
-    MaxCol += 2;
-    vector<vector<int>> Floor(MaxLine, vector<int>(MaxCol, 1));
+    int NumIntersections = 0;
+    bool OnEdge = false;
 
-    // Create the border with 2s
-    cout << "---- Bordering ----" << endl;
+    /**
+     * Ray casting algorithm:
+     * Consider a horizontal ray (line = PointLine). 
+     * Check only the vertical edges of the polygon.
+     * Check only the vertical edges on a column to the right of the PointCol.
+     * If the ray intersects the limit of an edge => Consider it.
+     */
 
-    RedTiles.push_back(RedTiles[0]);
-    for (int IdxRedTile = 0; IdxRedTile < RedTiles.size() - 1; IdxRedTile++)
+    for (int IdxPoint = 0; IdxPoint < PointsPolygon.size() - 1; IdxPoint++)
     {
-        pair<int, int> Tile1 = RedTiles[IdxRedTile];
-        pair<int, int> Tile2 = RedTiles[IdxRedTile + 1];
-        if (Tile1.first == Tile2.first)
+        if (PointsPolygon[IdxPoint].second == PointsPolygon[IdxPoint + 1].second)
         {
-            // Horizontal border
-            for (int IdxCol = min(Tile1.second, Tile2.second); IdxCol <= max(Tile1.second, Tile2.second); IdxCol++)
+            // Vertical Edge
+            int EdgeLineMin = min(PointsPolygon[IdxPoint].first, PointsPolygon[IdxPoint + 1].first);
+            int EdgeLineMax = max(PointsPolygon[IdxPoint].first, PointsPolygon[IdxPoint + 1].first);
+
+            if ((PointCol == PointsPolygon[IdxPoint].second) && (EdgeLineMin <= PointLine) && (PointLine <= EdgeLineMax))
             {
-                Floor[Tile1.first][IdxCol] = 2;
+                // Exactly on the edge
+                OnEdge = true;
+                break;
+            }
+            else
+            {
+                // Not on the edge. Check if the ray intersects it
+                if (PointCol < PointsPolygon[IdxPoint].second)
+                {
+                    if ((EdgeLineMin <= PointLine) && (PointLine <= EdgeLineMax))
+                    {
+                        NumIntersections++;
+                    }
+                }
             }
         }
         else
         {
-            // Vertical border
-            for (int IdxLine = min(Tile1.first, Tile2.first); IdxLine <= max(Tile1.first, Tile2.first); IdxLine++)
+            // Horizontal edge
+            int EdgeColMin = min(PointsPolygon[IdxPoint].second, PointsPolygon[IdxPoint + 1].second);
+            int EdgeColMax = max(PointsPolygon[IdxPoint].second, PointsPolygon[IdxPoint + 1].second);
+
+            if ((PointLine == PointsPolygon[IdxPoint].first) && (EdgeColMin <= PointCol) && (PointCol <= EdgeColMax))
             {
-                Floor[IdxLine][Tile1.second] = 2;
+                // Exactly on the edge
+                OnEdge = true;
+                break;
             }
         }
     }
-    RedTiles.pop_back();
 
-    // Fill the outer part of the shape defined by red tiles with 0s
-    cout << "---- Filling ----" << endl;
-
-    pair<int, int> StartTile = {MaxLine - 1, MaxCol - 1};
-    Floor[StartTile.first][StartTile.second] = 0;
-
-    queue<pair<int, int>> FillQueue;
-    FillQueue.push(StartTile);
-
-    while (FillQueue.size() != 0)
+    if ((OnEdge == true) || (NumIntersections % 2 == 1))
     {
-        pair<int, int> CurrentTile = FillQueue.front();
-        FillQueue.pop();
+        return true;
+    }
 
-        for (int IdxStep = 0; IdxStep < 4; IdxStep++)
+    return false;
+}
+
+long long SolvePart2(vector<pair<int, int>> RedTiles)
+{
+    long long MaxArea = 0;
+
+    RedTiles.push_back(RedTiles[0]);
+    
+    for (int IdxRedTile1 = 0; IdxRedTile1 < RedTiles.size() - 2; IdxRedTile1++)
+    {
+        for (int IdxRedTile2 = IdxRedTile1 + 1; IdxRedTile2 < RedTiles.size() - 1; IdxRedTile2++)
         {
-            int NewLine = CurrentTile.first + STEP_LINE[IdxStep];
-            int NewCol = CurrentTile.second + STEP_COL[IdxStep];
-            if ((0 <= NewLine) && (NewLine < MaxLine) && (0 <= NewCol) && (NewCol < MaxCol))
+            int RectangleLineMax = max(RedTiles[IdxRedTile1].first, RedTiles[IdxRedTile2].first);
+            int RectangleLineMin = min(RedTiles[IdxRedTile1].first, RedTiles[IdxRedTile2].first);
+            int RectangleColMax = max(RedTiles[IdxRedTile1].second, RedTiles[IdxRedTile2].second);
+            int RectangleColMin = min(RedTiles[IdxRedTile1].second, RedTiles[IdxRedTile2].second);
+
+            if (IdxRedTile1 == 65 && IdxRedTile2 == 309)
             {
-                if (Floor[NewLine][NewCol] == 1)
+                int stoppoint = 1;
+            }
+
+            if (InsidePolygon(RectangleLineMin, RectangleColMin, RedTiles) == true &&
+                InsidePolygon(RectangleLineMin, RectangleColMax, RedTiles) == true &&
+                InsidePolygon(RectangleLineMax, RectangleColMin, RedTiles) == true &&
+                InsidePolygon(RectangleLineMax, RectangleColMax, RedTiles) == true)
+            {
+                int DiffRectangleLine = RectangleLineMax - RectangleLineMin + 1;
+                int DiffRectangleCol = RectangleColMax - RectangleColMin + 1;
+                long long AreaRectangle = (long long)DiffRectangleLine * DiffRectangleCol;
+
+                if (AreaRectangle > MaxArea)
                 {
-                    FillQueue.push({NewLine, NewCol});
-                    Floor[NewLine][NewCol] = 0;
+                    MaxArea = AreaRectangle;
                 }
             }
         }
     }
 
-    // Switch the border elements from 2 to 1 
-    cout << "---- Switching ----" << endl;
-    for (int IdxLine = 0; IdxLine < MaxLine; IdxLine++)
-    {
-        for (int IdxCol = 0; IdxCol < MaxCol; IdxCol++)
-        {
-            if (Floor[IdxLine][IdxCol] == 2)
-            {
-                Floor[IdxLine][IdxCol] = 1;
-            }
-        }
-    }
-
-    // Calculate the sum of red / green tiles
-    cout << "---- Calculating partial sums ----" << endl;
-    vector<vector<long long>> PartialSumTiles(MaxLine, vector<long long>(MaxCol, 0));
-    PartialSumTiles[0][0] = Floor[0][0];
-
-    //      Top border
-    for (int IdxCol = 1; IdxCol < MaxCol; IdxCol++)
-    {
-        PartialSumTiles[0][IdxCol] = PartialSumTiles[0][IdxCol - 1] + Floor[0][IdxCol];
-    }
-    //      Left border
-    for (int IdxLine = 1; IdxLine < MaxLine; IdxLine++)
-    {
-        PartialSumTiles[IdxLine][0] = PartialSumTiles[IdxLine - 1][0] + Floor[IdxLine][0];
-    }
-    //      Inner part
-    for (int IdxLine = 1; IdxLine < MaxLine; IdxLine++)
-    {
-        for (int IdxCol = 1; IdxCol < MaxCol; IdxCol++)
-        {
-            PartialSumTiles[IdxLine][IdxCol] = PartialSumTiles[IdxLine - 1][IdxCol] + 
-                                               PartialSumTiles[IdxLine][IdxCol - 1] - 
-                                               PartialSumTiles[IdxLine - 1][IdxCol - 1] + 
-                                               Floor[IdxLine][IdxCol];
-        }
-    }
-    
-    // Iterate over the red tiles pairs and find the maximum rectangle
-    cout << "---- Finding maximum rectangle ----" << endl;
-    long long MaxNumTilesInside = 0;
-    for (int IdxRedTile1 = 0; IdxRedTile1 < RedTiles.size() - 1; IdxRedTile1++)
-    {
-        for (int IdxRedTile2 = IdxRedTile1 + 1; IdxRedTile2 < RedTiles.size(); IdxRedTile2++)
-        {
-            int FirstMax = max(RedTiles[IdxRedTile1].first, RedTiles[IdxRedTile2].first);
-            int FirstMin = min(RedTiles[IdxRedTile1].first, RedTiles[IdxRedTile2].first);
-            int SecondMax = max(RedTiles[IdxRedTile1].second, RedTiles[IdxRedTile2].second);
-            int SecondMin = min(RedTiles[IdxRedTile1].second, RedTiles[IdxRedTile2].second);
-            int DiffLine = FirstMax - FirstMin + 1;
-            int DiffCol = SecondMax - SecondMin + 1;
-            long long Area = (long long)DiffLine * DiffCol;
-            long long NumTilesInside = PartialSumTiles[FirstMax][SecondMax] - 
-                                       PartialSumTiles[FirstMax][SecondMin - 1] - 
-                                       PartialSumTiles[FirstMin - 1][SecondMax] + 
-                                       PartialSumTiles[FirstMin - 1][SecondMin - 1];
-            if ((Area == NumTilesInside) && (NumTilesInside > MaxNumTilesInside))
-            {
-                MaxNumTilesInside = NumTilesInside;
-            }
-        }
-    }
-
-    return MaxNumTilesInside;
+    return MaxArea;
 }
 
 int main()
@@ -196,12 +156,7 @@ int main()
     RedTiles = ReadFileLineByLine("input/day9.txt");
 
     cout << SolvePart1(RedTiles) << endl;
-
-    auto start = chrono::high_resolution_clock::now();
     cout << SolvePart2(RedTiles) << endl;
-    auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::minutes>(stop - start);
-    cout << "Time taken by function: "<< duration.count() << " minutes" << endl;
 
     return 0;
 }
