@@ -48,7 +48,21 @@ long long SolvePart1(vector<pair<int, int>> RedTiles)
     return MaxArea;
 }
 
-bool InsidePolygon(int PointLine, int PointCol, vector<pair<int, int>> PointsPolygon)
+typedef enum
+{
+    DIR_HORIZ = 0,
+    DIR_VERT_DESC,
+    DIR_VERT_ASC
+} DirectionType;
+
+typedef struct
+{
+    pair<int, int> Point1;
+    pair<int, int> Point2;
+    DirectionType Direction;
+} SegmentType;
+
+bool InsidePolygon(int PointLine, int PointCol, vector<SegmentType> Segments)
 {
     int NumIntersections = 0;
     bool OnEdge = false;
@@ -61,15 +75,15 @@ bool InsidePolygon(int PointLine, int PointCol, vector<pair<int, int>> PointsPol
      * If the ray intersects the limit of an edge => Consider it.
      */
 
-    for (int IdxPoint = 0; IdxPoint < PointsPolygon.size() - 1; IdxPoint++)
+    for (int IdxSegment = 0; IdxSegment < Segments.size(); IdxSegment++)
     {
-        if (PointsPolygon[IdxPoint].second == PointsPolygon[IdxPoint + 1].second)
+        if (Segments[IdxSegment].Direction == DIR_VERT_ASC || Segments[IdxSegment].Direction == DIR_VERT_DESC)
         {
             // Vertical Edge
-            int EdgeLineMin = min(PointsPolygon[IdxPoint].first, PointsPolygon[IdxPoint + 1].first);
-            int EdgeLineMax = max(PointsPolygon[IdxPoint].first, PointsPolygon[IdxPoint + 1].first);
+            int EdgeLineMin = min(Segments[IdxSegment].Point1.first, Segments[IdxSegment].Point2.first);
+            int EdgeLineMax = max(Segments[IdxSegment].Point1.first, Segments[IdxSegment].Point2.first);
 
-            if ((PointCol == PointsPolygon[IdxPoint].second) && (EdgeLineMin <= PointLine) && (PointLine <= EdgeLineMax))
+            if ((PointCol == Segments[IdxSegment].Point1.second) && (EdgeLineMin <= PointLine) && (PointLine <= EdgeLineMax))
             {
                 // Exactly on the edge
                 OnEdge = true;
@@ -78,11 +92,22 @@ bool InsidePolygon(int PointLine, int PointCol, vector<pair<int, int>> PointsPol
             else
             {
                 // Not on the edge. Check if the ray intersects it
-                if (PointCol < PointsPolygon[IdxPoint].second)
+                if (PointCol < Segments[IdxSegment].Point1.second)
                 {
-                    if ((EdgeLineMin <= PointLine) && (PointLine <= EdgeLineMax))
+                    if ((EdgeLineMin < PointLine) && (PointLine < EdgeLineMax))
                     {
+                        // Intersection in the inner part of the edge
                         NumIntersections++;
+                    }
+                    else if ((EdgeLineMin == PointLine) || (PointLine == EdgeLineMax))
+                    {
+                        // Intersection in one of the ends of the edge
+                        int IdxSegmentNext = (IdxSegment + 2) % Segments.size();
+                        if ((Segments[IdxSegment].Direction == DIR_VERT_DESC && Segments[IdxSegmentNext].Direction == DIR_VERT_DESC) ||
+                            (Segments[IdxSegment].Direction == DIR_VERT_ASC && Segments[IdxSegmentNext].Direction == DIR_VERT_ASC))
+                        {
+                            NumIntersections++;
+                        }
                     }
                 }
             }
@@ -90,10 +115,10 @@ bool InsidePolygon(int PointLine, int PointCol, vector<pair<int, int>> PointsPol
         else
         {
             // Horizontal edge
-            int EdgeColMin = min(PointsPolygon[IdxPoint].second, PointsPolygon[IdxPoint + 1].second);
-            int EdgeColMax = max(PointsPolygon[IdxPoint].second, PointsPolygon[IdxPoint + 1].second);
+            int EdgeColMin = min(Segments[IdxSegment].Point1.second, Segments[IdxSegment].Point2.second);
+            int EdgeColMax = max(Segments[IdxSegment].Point1.second, Segments[IdxSegment].Point2.second);
 
-            if ((PointLine == PointsPolygon[IdxPoint].first) && (EdgeColMin <= PointCol) && (PointCol <= EdgeColMax))
+            if ((PointLine == Segments[IdxSegment].Point1.first) && (EdgeColMin <= PointCol) && (PointCol <= EdgeColMax))
             {
                 // Exactly on the edge
                 OnEdge = true;
@@ -114,7 +139,31 @@ long long SolvePart2(vector<pair<int, int>> RedTiles)
 {
     long long MaxArea = 0;
 
+    vector<SegmentType> Segments;
     RedTiles.push_back(RedTiles[0]);
+    for (int IdxRedTile = 0; IdxRedTile < RedTiles.size(); IdxRedTile++)
+    {
+        SegmentType Segment;
+        Segment.Point1 = RedTiles[IdxRedTile];
+        Segment.Point2 = RedTiles[IdxRedTile + 1];
+        if (RedTiles[IdxRedTile].first == RedTiles[IdxRedTile + 1].first)
+        {
+            Segment.Direction = DIR_HORIZ;
+        }
+        else
+        {
+            if (RedTiles[IdxRedTile].second < RedTiles[IdxRedTile + 1].second)
+            {
+                Segment.Direction = DIR_VERT_ASC;
+            }
+            else
+            {
+                Segment.Direction = DIR_VERT_DESC;
+            }
+
+        }
+        Segments.push_back(Segment);
+    }
     
     for (int IdxRedTile1 = 0; IdxRedTile1 < RedTiles.size() - 2; IdxRedTile1++)
     {
@@ -130,10 +179,10 @@ long long SolvePart2(vector<pair<int, int>> RedTiles)
                 int stoppoint = 1;
             }
 
-            if (InsidePolygon(RectangleLineMin, RectangleColMin, RedTiles) == true &&
-                InsidePolygon(RectangleLineMin, RectangleColMax, RedTiles) == true &&
-                InsidePolygon(RectangleLineMax, RectangleColMin, RedTiles) == true &&
-                InsidePolygon(RectangleLineMax, RectangleColMax, RedTiles) == true)
+            if (InsidePolygon(RectangleLineMin, RectangleColMin, Segments) == true &&
+                InsidePolygon(RectangleLineMin, RectangleColMax, Segments) == true &&
+                InsidePolygon(RectangleLineMax, RectangleColMin, Segments) == true &&
+                InsidePolygon(RectangleLineMax, RectangleColMax, Segments) == true)
             {
                 int DiffRectangleLine = RectangleLineMax - RectangleLineMin + 1;
                 int DiffRectangleCol = RectangleColMax - RectangleColMin + 1;
