@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <set>
+#include <queue>
 #include <cmath>
 using namespace std;
 
@@ -13,8 +15,51 @@ int SolvePart1(unsigned int LightDiagramValue, unsigned int NodeMaxValue, vector
      * Apply BFS with Start node = 0 and Target node = LightDiagramValue.
      * The length of the shortest path - 1 is the returned value.
      */
+
+    vector<set<unsigned int>> Edges;
+    for (unsigned int Node = 0; Node <= NodeMaxValue; Node++)
+        Edges.push_back({});
+
+    for (unsigned int Node = 0; Node <= NodeMaxValue; Node++)
+    {
+        for (int IdxLightMask = 0; IdxLightMask < LightMaskList.size(); IdxLightMask++)
+        {
+            unsigned int NodeConnected = Node ^ LightMaskList[IdxLightMask];
+
+            Edges[Node].insert(NodeConnected);
+            Edges[NodeConnected].insert(Node);
+        }
+    }
+
+    vector<unsigned int> Distance(NodeMaxValue + 1, 0);
+    vector<bool> NodeVisited(NodeMaxValue + 1, false);
+    queue<unsigned int> BfsQueue;
+    BfsQueue.push(0);
+    NodeVisited[0] = true;
+    while (BfsQueue.size() > 0)
+    {
+        unsigned int CurrentNode = BfsQueue.front();
+        BfsQueue.pop();
+
+        for(unsigned int ConnectedNode : Edges[CurrentNode])
+        {
+            Distance[ConnectedNode] = Distance[CurrentNode] + 1;
+            if (ConnectedNode != LightDiagramValue)
+            {
+                if (NodeVisited[ConnectedNode] == false)
+                {
+                    NodeVisited[ConnectedNode] = true;
+                    BfsQueue.push(ConnectedNode);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
     
-    return 0;
+    return Distance[LightDiagramValue];
 }
 
 int ReadAndSolvePart1(string Filename)
