@@ -10,56 +10,43 @@ using namespace std;
 int SolvePart1(unsigned int LightDiagramValue, unsigned int NodeMaxValue, vector<unsigned int> LightMaskList)
 {
     /**
-     * Create a graph with nodes with values from 0 to NodeMaxValue.
+     * Consider a graph with nodes with values from 0 to NodeMaxValue.
      * Graph edges: between each node and its XORed value with one of the values from LightMaskList.
      * Apply BFS with Start node = 0 and Target node = LightDiagramValue.
      * The length of the shortest path - 1 is the returned value.
      */
 
-    vector<set<unsigned int>> Edges;
-    for (unsigned int Node = 0; Node <= NodeMaxValue; Node++)
-        Edges.push_back({});
-
-    for (unsigned int Node = 0; Node <= NodeMaxValue; Node++)
-    {
-        for (int IdxLightMask = 0; IdxLightMask < LightMaskList.size(); IdxLightMask++)
-        {
-            unsigned int NodeConnected = Node ^ LightMaskList[IdxLightMask];
-
-            Edges[Node].insert(NodeConnected);
-            Edges[NodeConnected].insert(Node);
-        }
-    }
-
     vector<unsigned int> Distance(NodeMaxValue + 1, 0);
-    vector<bool> NodeVisited(NodeMaxValue + 1, false);
     queue<unsigned int> BfsQueue;
+
+    Distance[0] = 1;
     BfsQueue.push(0);
-    NodeVisited[0] = true;
+
     while (BfsQueue.size() > 0)
     {
-        unsigned int CurrentNode = BfsQueue.front();
+        unsigned int NodeCurrent = BfsQueue.front();
         BfsQueue.pop();
 
-        for(unsigned int ConnectedNode : Edges[CurrentNode])
+        for (int IdxLightMask = 0; IdxLightMask < LightMaskList.size(); IdxLightMask++)
         {
-            Distance[ConnectedNode] = Distance[CurrentNode] + 1;
-            if (ConnectedNode != LightDiagramValue)
+            unsigned int NodeConnected = NodeCurrent ^ LightMaskList[IdxLightMask];
+
+            if (Distance[NodeConnected] == 0)
             {
-                if (NodeVisited[ConnectedNode] == false)
+                Distance[NodeConnected] = Distance[NodeCurrent] + 1;
+                if (NodeConnected != LightDiagramValue)
                 {
-                    NodeVisited[ConnectedNode] = true;
-                    BfsQueue.push(ConnectedNode);
+                    BfsQueue.push(NodeConnected);
                 }
-            }
-            else
-            {
-                break;
+                else
+                {
+                    return (Distance[LightDiagramValue] - 1);
+                }
             }
         }
     }
     
-    return Distance[LightDiagramValue];
+    return 0;
 }
 
 int ReadAndSolvePart1(string Filename)
