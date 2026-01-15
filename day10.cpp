@@ -85,6 +85,7 @@ int ReadAndSolvePart1(string Filename)
         }
 
         // Get the list of light masks as unsigned int, LSB (light with index 0) on the right side
+        LightMaskList.clear();
         stringstream AllLightToggleStream(ButtonToggleList);
         string LightToggleForOneSwitch;
         while (getline(AllLightToggleStream, LightToggleForOneSwitch, ')'))
